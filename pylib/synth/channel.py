@@ -1,11 +1,35 @@
 import numpy as np
 
+def Coerce(self, x):
+  if isinstance(x, Channel): return x
+  if isinstance(x, (int, float)): return Constant(x)
+  raise ValueError("Could not be coerced: {}".format(x))
+
 class Channel(object):
   def __init__(self):
     pass
 
   def __call__(self, t):
     raise NotImplementedError("Subclass must implement __call__")
+
+  def __add__(self, other):
+    return Sum(self, Coerce(other))
+
+  def __sub__(self, other):
+    return Difference(self, Coerce(other))
+
+  def __mul__(self, other):
+    return Product(self, Coerce(other))
+
+  def __div__(self, other):
+    return Quotient(self, Coerce(other))
+
+class Constant(Channel):
+  def __init__(self, c):
+    self.c = c
+
+  def __call__(self, t):
+    return self.c
 
 class SampledChannel(Channel):
   def __init__(self, length, frequency=48000):
