@@ -7,6 +7,9 @@ class Channel(object):
   def eval(self, t):
     raise NotImplementedError("Subclass must implement eval")
 
+  def __call__(self, other):
+    return PassThrough(self, other)
+
   def __add__(self, other):
     return Sum(self, other)
 
@@ -54,7 +57,7 @@ class SampledChannel(Channel):
   def sample(self, f):
     for i in range(self.frames):
       t = float(i) / self.frequency
-      self.data[i] = f(t)
+      self.data[i] = f.eval(t)
 
 class BinaryOp(Channel):
   def __init__(self, a, b):
@@ -63,21 +66,25 @@ class BinaryOp(Channel):
     self.a = a
     self.b = b
 
+class PassThrough(BinaryOp):
+  def eval(self, t):
+    return self.a.eval(self.b.eval(t))
+
 class Sum(BinaryOp):
   def eval(self, t):
-    return self.a(t) + self.b(t)
+    return self.a.eval(t) + self.b.eval(t)
 
 class Difference(BinaryOp):
   def eval(self, t):
-    return self.a(t) - self.b(t)
+    return self.a.eval(t) - self.b.eval(t)
 
 class Product(BinaryOp):
   def eval(self, t):
-    return self.a(t) * self.b(t)
+    return self.a.eval(t) * self.b.eval(t)
 
 class Quotient(BinaryOp):
   def eval(self, t):
-    return self.a(t) / self.b(t)
+    return self.a.eval(t) / self.b.eval(t)
 
 class Transformable(Channel):
   def __init__(self, shift=0.0, amplitude=1.0, frequency=1.0, *args, **kwargs):
@@ -92,6 +99,6 @@ class Transform(Transformable):
     self.f = f
 
   def eval(self, t):
-    return self.amplitude * self.f(self.frequency * t - self.shift)
+    return self.amplitude * self.f.eval(self.frequency * t - self.shift)
 
 

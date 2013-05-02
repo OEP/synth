@@ -34,7 +34,7 @@ class Track(object):
     fmt = "<" + fmt_char * self.nchannels
     for sample in self.samples(length, frequency):
       sample = tuple(int(max_value * x) for x in sample)
-      data += struct.pack("<" + fmt_char * self.nchannels, *sample)
+      data += struct.pack(fmt, *sample)
 
     fp.writeframes(data)
     fp.close()
