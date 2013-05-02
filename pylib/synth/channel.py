@@ -4,8 +4,8 @@ class Channel(object):
   def __init__(self):
     pass
 
-  def __call__(self, t):
-    raise NotImplementedError("Subclass must implement __call__")
+  def eval(self, t):
+    raise NotImplementedError("Subclass must implement eval")
 
   def __add__(self, other):
     return Sum(self, other)
@@ -27,7 +27,7 @@ class Constant(Channel):
   def __init__(self, c):
     self.c = c
 
-  def __call__(self, t):
+  def eval(self, t):
     return self.c
 
 class SampledChannel(Channel):
@@ -45,7 +45,7 @@ class SampledChannel(Channel):
     if i < 0 or i >= self.frames: return 0.0
     return self.data[i]
 
-  def __call__(self, t):
+  def eval(self, t):
     ndx = float(t) * self.frequency
     i = int(ndx)
     q = ndx - i
@@ -64,19 +64,19 @@ class BinaryOp(Channel):
     self.b = b
 
 class Sum(BinaryOp):
-  def __call__(self, t):
+  def eval(self, t):
     return self.a(t) + self.b(t)
 
 class Difference(BinaryOp):
-  def __call__(self, t):
+  def eval(self, t):
     return self.a(t) - self.b(t)
 
 class Product(BinaryOp):
-  def __call__(self, t):
+  def eval(self, t):
     return self.a(t) * self.b(t)
 
 class Quotient(BinaryOp):
-  def __call__(self, t):
+  def eval(self, t):
     return self.a(t) / self.b(t)
 
 class Transformable(Channel):
@@ -91,7 +91,7 @@ class Transform(Transformable):
     super(Transform, self).__init__(*args, **kwargs)
     self.f = f
 
-  def __call__(self, t):
+  def eval(self, t):
     return self.amplitude * self.f(self.frequency * t - self.shift)
 
 

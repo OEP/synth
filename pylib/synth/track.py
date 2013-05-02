@@ -46,4 +46,4 @@ class Track(object):
       yield self.eval(t)
 
   def eval(self, t):
-    return tuple(f(t) for f in self.channels)
+    return tuple(f.eval(t) for f in self.channels)
