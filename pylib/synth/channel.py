@@ -1,6 +1,6 @@
 import numpy as np
 
-def Coerce(self, x):
+def Coerce(x):
   if isinstance(x, Channel): return x
   if isinstance(x, (int, float)): return Constant(x)
   raise ValueError("Could not be coerced: {}".format(x))
@@ -78,3 +78,20 @@ class Product(BinaryOp):
 class Quotient(BinaryOp):
   def __call__(self, t):
     return self.a(t) / self.b(t)
+
+class Transformable(Channel):
+  def __init__(self, shift=0.0, amplitude=1.0, frequency=1.0, *args, **kwargs):
+    super(Transformable, self).__init__(*args, **kwargs)
+    self.shift = shift
+    self.amplitude = amplitude
+    self.frequency = frequency
+
+class Transform(Transformable):
+  def __init__(self, f, *args, **kwargs):
+    super(Transform, self).__init__(*args, **kwargs)
+    self.f = f
+
+  def __call__(self, t):
+    return self.amplitude * self.f(self.frequency * t - self.shift)
+
+
