@@ -1,10 +1,5 @@
 import numpy as np
 
-def Coerce(x):
-  if isinstance(x, Channel): return x
-  if isinstance(x, (int, float)): return Constant(x)
-  raise ValueError("Could not be coerced: {}".format(x))
-
 class Channel(object):
   def __init__(self):
     pass
@@ -13,17 +8,21 @@ class Channel(object):
     raise NotImplementedError("Subclass must implement __call__")
 
   def __add__(self, other):
-    return Sum(self, Coerce(other))
+    return Sum(self, other)
 
   def __sub__(self, other):
-    return Difference(self, Coerce(other))
+    return Difference(self, other)
 
   def __mul__(self, other):
-    return Product(self, Coerce(other))
+    return Product(self, other)
 
   def __div__(self, other):
-    return Quotient(self, Coerce(other))
+    return Quotient(self, other)
 
+  def __coerce__(self, other):
+    if isinstance(other, Channel): return (self, other)
+    if isinstance(other, (int, float)): return (self, Constant(other))
+  
 class Constant(Channel):
   def __init__(self, c):
     self.c = c
@@ -60,6 +59,7 @@ class SampledChannel(Channel):
 class BinaryOp(Channel):
   def __init__(self, a, b):
     super(BinaryOp, self).__init__()
+    a, b = coerce(a,b)
     self.a = a
     self.b = b
 
