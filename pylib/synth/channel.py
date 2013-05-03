@@ -37,9 +37,26 @@ class Channel(object):
     a, b = coerce(self, other)
     return b / a
 
+  def __neg__(self):
+    return Invert(self)
+
+  def __abs__(self):
+    return Abs(self)
+
+  def __pow__(self, other):
+    return Power(self, other)
+
+  def __rpow__(self, other):
+    return Power(other, self)
+
   def __coerce__(self, other):
     if isinstance(other, Channel): return (self, other)
     if isinstance(other, (int, float)): return (self, Constant(other))
+    return NotImplemented
+
+class Identity(Channel):
+  def eval(self, t):
+    return t
   
 class Constant(Channel):
   def __init__(self, c):
@@ -86,12 +103,20 @@ class Invert(UnaryOp):
   def eval(self, t):
     return -self.a(t)
 
+class Abs(UnaryOp):
+  def eval(self, t):
+    return abs(self.a(t))
+
 class BinaryOp(Channel):
   def __init__(self, a, b):
     super(BinaryOp, self).__init__()
     a, b = coerce(a,b)
     self.a = a
     self.b = b
+
+class Power(BinaryOp):
+  def eval(self, t):
+    return self.a.eval(t) ** self.b.eval(t)
 
 class PassThrough(BinaryOp):
   def eval(self, t):
