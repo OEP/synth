@@ -1,12 +1,18 @@
 import wave
 import struct
 
+from synth.channel import SampledChannel
+
 gFmt = {
   1: 'b',
   2: 'h',
   4: 'i',
   8: 'q',
 }
+
+def chunks(s, n):
+  for i in xrange(0, len(s), n):
+    yield s[i:i+n]
 
 def format_info(width):
   if width not in gFmt:
@@ -18,9 +24,41 @@ class Track(object):
   def __init__(self, *args):
     self.channels = list(args)
 
+  @classmethod
+  def read(self, path):
+    fp = wave.open(path, "r")
+    channels = fp.getnchannels()
+    width = fp.getsampwidth()
+    frequency = fp.getframerate()
+    length = fp.getnframes() / float(frequency)
+    track = Track(
+      *(SampledChannel(length, frequency=frequency) for i in range(channels))
+    )
+
+    fmt_char, max_value = format_info(width)
+    fmt = "<" + fmt_char * channels
+    
+    frames = fp.readframes(2048)
+    i = 0
+    
+    while frames:
+      for chunk in chunks(frames, channels*width):
+        sample = struct.unpack(fmt, chunk)
+        for (c, channel_value) in enumerate(sample):
+          value = channel_value / float(max_value)
+          track.channels[c].data[i] = value
+        i += 1
+      frames = fp.readframes(2048)
+
+    return track
+
   @property
   def nchannels(self):
     return len(self.channels)
+
+  @property
+  def length(self):
+    return max(*(x.length for x in self.channels))
 
   def write(self, path, length, frequency=48000, width=2):
     fp = wave.open(path, "w")
