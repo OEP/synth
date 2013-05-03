@@ -13,14 +13,28 @@ class Channel(object):
   def __add__(self, other):
     return Sum(self, other)
 
+  def __radd__(self, other):
+    return self + other
+
   def __sub__(self, other):
     return Difference(self, other)
+
+  def __rsub__(self, other):
+    a, b = coerce(self, other)
+    return b - a
 
   def __mul__(self, other):
     return Product(self, other)
 
+  def __rmul__(self, other):
+    return self * other
+
   def __div__(self, other):
     return Quotient(self, other)
+
+  def __rdiv__(self, other):
+    a, b = coerce(self, other)
+    return b / a
 
   def __coerce__(self, other):
     if isinstance(other, Channel): return (self, other)
@@ -58,6 +72,17 @@ class SampledChannel(Channel):
     for i in range(self.frames):
       t = float(i) / self.frequency
       self.data[i] = f.eval(t)
+
+class UnaryOp(Channel):
+  def __init__(self, a, *args, **kwargs):
+    super(UnaryOp, self).__init__(*args, **kwargs)
+    if isinstance(a, (float, int)):
+      a = Constant(a)
+    self.a = a
+
+class Invert(UnaryOp):
+  def eval(self, t):
+    return -self.a(t)
 
 class BinaryOp(Channel):
   def __init__(self, a, b):
