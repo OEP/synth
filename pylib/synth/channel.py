@@ -1,4 +1,5 @@
 import numpy as np
+import math
 
 class Channel(object):
   def __init__(self):
@@ -50,7 +51,8 @@ class Constant(Channel):
 class SampledChannel(Channel):
   def __init__(self, length, frequency=48000):
     super(SampledChannel, self).__init__()
-    frames = int(float(length) * frequency)
+    frames = math.ceil(float(length) * frequency)
+    self.length = length
     self.frequency = frequency
     self.data = np.zeros(frames)
 
