@@ -12,8 +12,12 @@ class Channel(object):
   def name(self):
     return self.__class__.__name__
 
-  def __call__(self, other):
-    return PassThrough(self, other)
+  @property
+  def derivative(self):
+    raise NotImplementedError("%s has not implemented derivative" % self.name)
+
+  def __call__(self, t):
+    return self.eval(t)
 
   def __add__(self, other):
     return Sum(self, other)
@@ -62,19 +66,13 @@ class Identity(Channel):
   def eval(self, t):
     return t
 
+  @property
+  def derivative(self):
+    return Constant(0)
+
   def __repr__(self):
     return "t"
   
-class Constant(Channel):
-  def __init__(self, c):
-    self.c = c
-
-  def eval(self, t):
-    return self.c
-
-  def __repr__(self):
-    return str(self.c)
-
 class SampledChannel(Channel):
   def __init__(self, length, frequency=48000):
     super(SampledChannel, self).__init__()
@@ -102,6 +100,20 @@ class SampledChannel(Channel):
       t = float(i) / self.frequency
       self.data[i] = f.eval(t)
 
+class Constant(Channel):
+  def __init__(self, c):
+    self.c = c
+
+  def eval(self, t):
+    return self.c
+
+  @property
+  def derivative(self):
+    return Constant(0)
+
+  def __repr__(self):
+    return str(self.c)
+
 class UnaryOp(Channel):
   def __init__(self, a, *args, **kwargs):
     super(UnaryOp, self).__init__(*args, **kwargs)
@@ -116,9 +128,21 @@ class Invert(UnaryOp):
   def eval(self, t):
     return -self.a(t)
 
+  @property
+  def derivative(self):
+    return -self.a.derivative
+
 class Abs(UnaryOp):
   def eval(self, t):
     return abs(self.a(t))
+
+  @property
+  def derivative(self):
+    return self.a * self.a.derivative / ((self.a ** 2) ** 0.5)
+
+class Log(UnaryOp):
+  def eval(self, t):
+    return math.log(self.a.eval(t))
 
 class BinaryOp(Channel):
   def __init__(self, a, b):
@@ -134,6 +158,12 @@ class Power(BinaryOp):
   def eval(self, t):
     return self.a.eval(t) ** self.b.eval(t)
 
+  # f(x)^(g(x)-1)     (g(x) f'(x) + f(x) log(f(x)) g'(x))
+  @property
+  def derivative(self):
+    return (self.a ** (self.b - 1)) * \
+      (self.b * self.a.derivative + self.a * Log(self.a) * self.b.derivative)
+    
 class PassThrough(BinaryOp):
   def eval(self, t):
     return self.a.eval(self.b.eval(t))
