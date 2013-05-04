@@ -7,6 +7,10 @@ class Channel(object):
 
   def eval(self, t):
     raise NotImplementedError("Subclass must implement eval")
+  
+  @property
+  def name(self):
+    return self.__class__.__name__
 
   def __call__(self, other):
     return PassThrough(self, other)
@@ -57,6 +61,9 @@ class Channel(object):
 class Identity(Channel):
   def eval(self, t):
     return t
+
+  def __repr__(self):
+    return "t"
   
 class Constant(Channel):
   def __init__(self, c):
@@ -64,6 +71,9 @@ class Constant(Channel):
 
   def eval(self, t):
     return self.c
+
+  def __repr__(self):
+    return str(self.c)
 
 class SampledChannel(Channel):
   def __init__(self, length, frequency=48000):
@@ -99,6 +109,9 @@ class UnaryOp(Channel):
       a = Constant(a)
     self.a = a
 
+  def __repr__(self):
+    return "{}({})".format(self.name, self.a)
+
 class Invert(UnaryOp):
   def eval(self, t):
     return -self.a(t)
@@ -113,6 +126,9 @@ class BinaryOp(Channel):
     a, b = coerce(a,b)
     self.a = a
     self.b = b
+  
+  def __repr__(self):
+    return "{}({}, {})".format(self.name, repr(self.a), repr(self.b))
 
 class Power(BinaryOp):
   def eval(self, t):
