@@ -16,6 +16,9 @@ class Channel(object):
   def derivative(self):
     raise NotImplementedError("%s has not implemented derivative" % self.name)
 
+  def reduce(self):
+    return self
+
   def __call__(self, t):
     return self.eval(t)
 
@@ -120,6 +123,14 @@ class UnaryOp(Channel):
     if isinstance(a, (float, int)):
       a = Constant(a)
     self.a = a
+  
+  def reduce(self):
+    ra = self.a.reduce()
+    cls = self.__class__
+    if isinstance(ra, Constant):
+      tmp = cls(ra)
+      return Constant(tmp.eval(0.0))
+    return super(Invert, self).reduce()
 
   def __repr__(self):
     return "{}({})".format(self.name, self.a)
@@ -150,6 +161,15 @@ class BinaryOp(Channel):
     a, b = coerce(a,b)
     self.a = a
     self.b = b
+  
+  def reduce(self):
+    ra = self.a.reduce()
+    rb = self.b.reduce()
+    cls = self.__class__
+    if isinstance(ra, Constant) and isinstance(rb, Constant):
+      tmp = cls(ra, rb)
+      return Constant(self.eval(0.0))
+    return super(Invert, self).reduce()
   
   def __repr__(self):
     return "{}({}, {})".format(self.name, repr(self.a), repr(self.b))
