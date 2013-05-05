@@ -142,7 +142,7 @@ class UnaryOp(Channel):
     if isinstance(ra, Constant):
       tmp = cls(ra)
       return Constant(tmp.eval(0.0))
-    return super(Invert, self).reduce()
+    return super(UnaryOp, self).reduce()
 
   def __repr__(self):
     return "{}({})".format(self.name, self.a)
@@ -185,7 +185,7 @@ class BinaryOp(Channel):
     if isinstance(ra, Constant) and isinstance(rb, Constant):
       tmp = cls(ra, rb)
       return Constant(self.eval(0.0))
-    return super(Invert, self).reduce()
+    return super(BinaryOp, self).reduce()
   
   def __repr__(self):
     if self.infix_form:
