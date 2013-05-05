@@ -134,7 +134,7 @@ class UnaryOp(Channel):
     super(UnaryOp, self).__init__(*args, **kwargs)
     if isinstance(a, (float, int)):
       a = Constant(a)
-    self.a = a
+    self.a = a.reduce()
   
   def reduce(self):
     ra = self.a.reduce()
@@ -171,8 +171,8 @@ class BinaryOp(Channel):
   def __init__(self, a, b):
     super(BinaryOp, self).__init__()
     a, b = coerce(a,b)
-    self.a = a
-    self.b = b
+    self.a = a.reduce()
+    self.b = b.reduce()
 
   @property
   def infix_form(self):
@@ -229,10 +229,19 @@ class Difference(BinaryOp):
   def infix_form(self):
     return "-"
 
-
 class Product(BinaryOp):
   def eval(self, t):
     return self.a.eval(t) * self.b.eval(t)
+
+  def reduce(self):
+    a, b = self.a.reduce(), self.b.reduce()
+    if isinstance(a, Constant):
+      if a.c == 1: return b
+      if a.c == 0: return a
+    if isinstance(b, Constant):
+      if b.c == 1: return a
+      if b.c == 0: return b
+    return super(Product, self).reduce()
   
   @property
   def infix_form(self):
@@ -247,7 +256,6 @@ class Quotient(BinaryOp):
   def infix_form(self):
     return "/"
 
-
 class Transformable(Channel):
   def __init__(self, shift=0.0, amplitude=1.0, frequency=1.0, *args, **kwargs):
     super(Transformable, self).__init__(*args, **kwargs)
@@ -258,7 +266,7 @@ class Transformable(Channel):
 class Transform(Transformable):
   def __init__(self, f, *args, **kwargs):
     super(Transform, self).__init__(*args, **kwargs)
-    self.f = f
+    self.f = f.reduce()
 
   def eval(self, t):
     return self.amplitude * self.f.eval(self.frequency * t - self.shift)
