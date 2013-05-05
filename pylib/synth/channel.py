@@ -16,6 +16,9 @@ class Channel(object):
   def derivative(self):
     raise NotImplementedError("%s has not implemented derivative" % self.name)
 
+  def is_terminal(self):
+    return False
+
   def reduce(self):
     return self
 
@@ -69,9 +72,12 @@ class Identity(Channel):
   def eval(self, t):
     return t
 
+  def is_terminal(self):
+    return True
+
   @property
   def derivative(self):
-    return Constant(0)
+    return Constant(1)
 
   def __repr__(self):
     return "t"
@@ -83,6 +89,9 @@ class SampledChannel(Channel):
     self.length = length
     self.frequency = frequency
     self.data = np.zeros(frames)
+
+  def is_terminal(self):
+    return True
 
   @property
   def frames(self):
@@ -106,6 +115,9 @@ class SampledChannel(Channel):
 class Constant(Channel):
   def __init__(self, c):
     self.c = c
+
+  def is_terminal(self):
+    return True
 
   def eval(self, t):
     return self.c
@@ -161,6 +173,10 @@ class BinaryOp(Channel):
     a, b = coerce(a,b)
     self.a = a
     self.b = b
+
+  @property
+  def infix_form(self):
+    return None
   
   def reduce(self):
     ra = self.a.reduce()
@@ -172,13 +188,21 @@ class BinaryOp(Channel):
     return super(Invert, self).reduce()
   
   def __repr__(self):
+    if self.infix_form:
+      lhs = "{}" if self.a.is_terminal() else "({})"
+      rhs = "{}" if self.b.is_terminal() else "({})"
+      fmt = lhs + " {} " + rhs
+      return fmt.format(repr(self.a), self.infix_form, repr(self.b))
     return "{}({}, {})".format(self.name, repr(self.a), repr(self.b))
 
 class Power(BinaryOp):
   def eval(self, t):
     return self.a.eval(t) ** self.b.eval(t)
 
-  # f(x)^(g(x)-1)     (g(x) f'(x) + f(x) log(f(x)) g'(x))
+  @property
+  def infix_form(self):
+    return "**"
+
   @property
   def derivative(self):
     return (self.a ** (self.b - 1)) * \
@@ -191,18 +215,38 @@ class PassThrough(BinaryOp):
 class Sum(BinaryOp):
   def eval(self, t):
     return self.a.eval(t) + self.b.eval(t)
+  
+  @property
+  def infix_form(self):
+    return "+"
+
 
 class Difference(BinaryOp):
   def eval(self, t):
     return self.a.eval(t) - self.b.eval(t)
+  
+  @property
+  def infix_form(self):
+    return "-"
+
 
 class Product(BinaryOp):
   def eval(self, t):
     return self.a.eval(t) * self.b.eval(t)
+  
+  @property
+  def infix_form(self):
+    return "*"
+
 
 class Quotient(BinaryOp):
   def eval(self, t):
     return self.a.eval(t) / self.b.eval(t)
+  
+  @property
+  def infix_form(self):
+    return "/"
+
 
 class Transformable(Channel):
   def __init__(self, shift=0.0, amplitude=1.0, frequency=1.0, *args, **kwargs):
